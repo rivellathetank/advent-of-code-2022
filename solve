@@ -1,0 +1,63 @@
+#!/usr/bin/env zsh
+#
+# Usage: ./solve [task]..
+
+emulate -L zsh -o err_exit || exit
+setopt no_unset extended_glob pipe_fail warn_create_global
+setopt prompt_percent no_prompt_subst no_hup no_check_jobs
+
+zmodload zsh/parameter
+
+local dir=${ZSH_SCRIPT:h:a}
+
+(( ARGC )) || set -- $dir/<->(/N:t)
+
+if (( $*[(I)*~<->] )); then
+  print -Pru2 -- "usage: %F{2}${ZSH_SCRIPT//\%/%%}%f %B[task]%b.."
+  exit 1
+fi
+
+if ! setopt monitor 2>/dev/null; then
+  print -ru2 -- 'error: controlling TTY is required'
+  exit 1
+fi
+
+function cleanup() {
+  if (( $#jobstates )); then
+    kill -- %${^${(k)jobstates}}
+    wait || true
+  fi
+  exit $1
+}
+
+trap 'trap - INT TERM EXIT; cleanup 130' INT
+trap 'trap - INT TERM EXIT; cleanup 143' TERM
+trap 'trap - INT TERM EXIT; cleanup 1'   EXIT
+
+rm -f -- $dir/${^*}/stderr.log
+
+local task pids=()
+
+for task; do
+  cd -q -- $dir/$task
+  if (( ARGC > 1 )); then
+    ./solve </dev/null >answer 2>stderr.log &
+  else
+    ./solve </dev/null 3>&2 >answer 2>&3 2>stderr.log &
+  fi
+  pids+=$!
+done >/dev/null
+
+for task; do
+  print -rP -- "Solving %B$task%b..."
+  cd -q -- $dir/$task
+  local -i ret=0
+  wait $pids[1] || ret=$?
+  kill -- -$pids[1] 2>/dev/null || true
+  shift 1 pids
+  (( ARGC == 1 )) || [[ ! -e stderr.log ]] || <stderr.log >&2
+  (( ret )) && exit ret
+  print -rP -- "Answer for %B$task%b: %F{green}${(V)$(<answer)//\%//%%}%f"
+done
+
+trap - INT TERM EXIT
