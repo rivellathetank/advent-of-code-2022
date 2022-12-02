@@ -3,6 +3,7 @@
 Solutions to [Advent of Code 2022](https://adventofcode.com/2022) puzzles.
 
 - [Day 1](#day-1)
+- [Day 2](#day-2)
 
 ## Day 1
 
@@ -123,3 +124,31 @@ by hand.
 
 My full solution to the second part of the puzzle is `O(N)` in time and `O(1)`
 in space. Bliss.
+
+## Day 2
+
+Today we are playing Rock Paper Scissors with unorthodox scoring that depends
+not only on whether you win/lose/draw but also on what you play. You get the
+most points for winning with scissors and the least for losing with rock.
+Unfortunately, we don't get to implement a winning strategy. Our job is to
+simply calculate the score of matches that are given as input.
+
+Input lines match `[A-C] [X-Z]`. The first letter encodes the first player's
+move. The second letter is the second player's move in the first part of the
+puzzle and the outcome of the match in the second part.
+
+Here's my solution to the second part:
+
+```csharp
+File.ReadLines("input").Sum(p => Score(p[0] - 'A', p[2] - 'X'));
+```
+
+With this `Score()`:
+
+```csharp
+long Score(int a, int b) => (a + b + 2) % 3 + 1 + 3 * b;
+```
+
+`(a + b + 2) % 3` is the second player's move.
+
+The solution to the first part is the same but with a different `Score()`.
