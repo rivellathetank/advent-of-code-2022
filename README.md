@@ -4,6 +4,7 @@ Solutions to [Advent of Code 2022](https://adventofcode.com/2022) puzzles.
 
 - [Day 1](#day-1)
 - [Day 2](#day-2)
+- [Day 3](#day-3)
 
 ## Day 1
 
@@ -152,3 +153,56 @@ long Score(int a, int b) => (a + b + 2) % 3 + 1 + 3 * b;
 `(a + b + 2) % 3` is the second player's move.
 
 The solution to the first part is the same but with a different `Score()`.
+
+## Day 3
+
+The order of the day is intersection of sets. The number of sets to be
+intersected is small and each of them is tiny, so any algorithm will do no
+matter how ridiculously inefficient.
+
+Here's part two:
+
+```csharp
+File.ReadLines("input")
+    .Chunk(3)
+    .Select(FindItem)
+    .Sum(Priority)
+```
+
+With these helper functions:
+
+```csharp
+char FindItem(IEnumerable<string> group) =>
+    group.Aggregate((a, b) => string.Concat(b.Intersect(a))).First();
+
+long Priority(char item) =>
+    item <= 'Z' ? item - 'A' + 27 : item - 'a' + 1;
+```
+
+Here `b.Intersect(a)` is more efficient than `a.Intersect(b)` because the
+second argument gets converted to `HashSet`. This is undocumented but you can
+see it in the [implementation](
+  https://github.com/dotnet/runtime/blob/ebba1d4acb7abea5ba15e1f7f69d1d1311465d16/src/libraries/System.Linq/src/System/Linq/Intersect.cs#L78).
+
+My code has optimal time complexity of `O(N)` where `N` is the number of input
+characters. However, its space complexity is suboptimal as it's linear in group
+size. Group size was fixed in the problem statement but I'm considering it a
+runtime parameter for an additional challenge.
+
+The optimal space complexity is `O(M)` where `M` is the maximum input string
+length. It can be achieved by replacing the stock `Chunk()` from LINQ with this
+version:
+
+```csharp
+// The same as Chunk() from LINQ but lazy. Space complexity is O(1) while Chunk()'s is O(n).
+public static IEnumerable<IEnumerable<T>> LazyChunk<T>(this IEnumerable<T> seq, int n) {
+  if (n <= 0) throw new ArgumentException("must be positive", nameof(n));
+  IEnumerator<T> e = seq.GetEnumerator();
+  while (e.MoveNext()) yield return Take(e, n);
+  static IEnumerable<T> Take(IEnumerator<T> e, int n) {
+    do {
+      yield return e.Current;
+    } while (--n != 0 && e.MoveNext());
+  }
+}
+```
