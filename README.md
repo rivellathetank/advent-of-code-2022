@@ -5,6 +5,7 @@ Solutions to [Advent of Code 2022](https://adventofcode.com/2022) puzzles.
 - [Day 1](#day-1)
 - [Day 2](#day-2)
 - [Day 3](#day-3)
+- [Day 4](#day-4)
 
 ## Day 1
 
@@ -206,3 +207,39 @@ public static IEnumerable<IEnumerable<T>> LazyChunk<T>(this IEnumerable<T> seq, 
   }
 }
 ```
+
+## Day 4
+
+Each input line specifies a pair of non-trivial segments. For example,
+`"2-8,3-7"` denotes `[2, 8]` and `[3, 7]`. We need to count pairs where one
+segment contains (part 1) or overlaps (part 2) the other.
+
+Part 1:
+
+```csharp
+File.ReadLines("input")
+    .Select(s => s.Split(',').ToArray(r => r.Split('-').ToArray(int.Parse)))
+    .Count(x => (x[0][0] - x[1][0]) * (x[0][1] - x[1][1]) <= 0);
+```
+
+Part 2:
+
+```csharp
+File.ReadLines("input")
+    .Select(s => s.Split(',').ToArray(r => r.Split('-').ToArray(int.Parse)))
+    .Count(x => x[0][0] <= x[1][1] && x[1][0] <= x[0][1]);
+```
+
+With this helper:
+
+```csharp
+public static U[] ToArray<T, U>(this IEnumerable<T> seq, Func<T, U> f) => seq.Select(f).ToArray();
+```
+
+LINQ has shortcuts for many common chains such as `.Where(f).Count()` or
+`.Select(f).Sum()` but not for `.Select(f).ToArray()` or `.Select(f).ToList()`.
+In my professional life I like to define overloads for all `.ToXXX()` methods to
+make these constructs shorter. I've done the same in today's puzzle.
+
+We are yet to see a problem that requires implementing some kind of algorithm.
+Hopefully next week.
