@@ -6,6 +6,7 @@ Solutions to [Advent of Code 2022](https://adventofcode.com/2022) puzzles.
 - [Day 2](#day-2)
 - [Day 3](#day-3)
 - [Day 4](#day-4)
+- [Day 5](#day-5)
 
 ## Day 1
 
@@ -243,3 +244,41 @@ make these constructs shorter. I've done the same in today's puzzle.
 
 We are yet to see a problem that requires implementing some kind of algorithm.
 Hopefully next week.
+
+## Day 5
+
+We are to implement a crane that moves crates according to specific
+instructions: move `N` top crates from pile `A` to pile `B`, this sort of thing.
+The initial placement of crates is also given. Just like before, no algorithms
+required. A direct translation from *Human* to *Computer* is all we need to do.
+
+Here's the second part:
+
+```csharp
+IEnumerator<string> input = File.ReadLines("input").GetEnumerator();
+List<List<char>> stacks = new();
+
+while (input.MoveNext()) {
+  string line = input.Current;
+  if (line[1] == '1') break;
+  while (stacks.Count * 4 != line.Length + 1) stacks.Add(new());
+  for (int i = 0; i != stacks.Count; ++i) {
+    char crate = line[4 * i + 1];
+    if (crate != ' ') stacks[i].Add(crate);
+  }
+}
+
+input.MoveNext();
+foreach (List<char> stack in stacks) stack.Reverse();
+
+while (input.MoveNext()) {
+  string[] parts = input.Current.Split(' ');
+  int n = int.Parse(parts[1]);
+  List<char> from = stacks[int.Parse(parts[3]) - 1];
+  List<char> to = stacks[int.Parse(parts[5]) - 1];
+  to.AddRange(from.Skip(from.Count - n));
+  from.RemoveRange(from.Count - n, n);
+}
+
+Console.WriteLine(string.Join(null, stacks.Select(s => s.Last())));
+```
