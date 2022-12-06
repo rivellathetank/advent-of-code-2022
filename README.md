@@ -7,6 +7,7 @@ Solutions to [Advent of Code 2022](https://adventofcode.com/2022) puzzles.
 - [Day 3](#day-3)
 - [Day 4](#day-4)
 - [Day 5](#day-5)
+- [Day 6](#day-6)
 
 ## Day 1
 
@@ -282,3 +283,49 @@ while (input.MoveNext()) {
 
 Console.WriteLine(string.Join(null, stacks.Select(s => s.Last())));
 ```
+
+## Day 6
+
+We need to find the first sequence of `N` bytes in a file where all `N` are
+distinct. `N` is 4 in the first and 14 in the second part of the puzzle.
+
+Given the small size of the input file and small `N`, something as inefficient
+as this would do the job:
+
+```csharp
+ReadOnlySpan<byte> input = File.ReadAllBytes("input");
+for (int i = 0; ; ++i) {
+  if (input[i..(i + N)].ToArray().Distinct().Count() == N) {
+    Console.WriteLine(i + N);
+    break;
+  }
+}
+```
+
+This is `O(M)` in size and `O(N * M)` in time where `M` is the size of input.
+
+The best time complexity here is obviously `O(M)`, and the best space complexity
+given given this time complexity is obviously `O(N)`. This is what I aimed to
+implement.
+
+```csharp
+byte[] window = new byte[N];
+byte[] hist = new byte[256];
+Span<byte> buf = stackalloc byte[1];
+using FileStream input = File.Open("input", FileMode.Open);
+
+for (int n = 0, p = 0; n != N; p = (p + 1) % N) {
+  if (input.Read(buf) != 1) throw new Exception("unexpected EOF");
+  if (input.Position >= N && --hist[window[p]] == 0) --n;
+  if (++hist[buf[0]] == 1) ++n;
+  window[p] = buf[0];
+}
+
+Console.WriteLine(input.Position);
+```
+
+`FileStream` has a 4KB buffer, so reading one byte at a time isn't awful. Still,
+a faster implementation would disable buffered reads, manually read up to 4KB at
+a time, and iterate over that data. In addition, `input.Position >= N` doesn't
+have to be in the main loop. Having a separate loop for initialization would get
+rid of it.
