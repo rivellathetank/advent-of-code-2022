@@ -8,6 +8,7 @@ Solutions to [Advent of Code 2022](https://adventofcode.com/2022) puzzles.
 - [Day 4](#day-4)
 - [Day 5](#day-5)
 - [Day 6](#day-6)
+- [Day 7](#day-7)
 
 ## Day 1
 
@@ -329,3 +330,85 @@ a faster implementation would disable buffered reads, manually read up to 4KB at
 a time, and iterate over that data. In addition, `input.Position >= N` doesn't
 have to be in the main loop. Having a separate loop for initialization would get
 rid of it.
+
+## Day 7
+
+We are given a shell typescript (as if recorded by script(1)) of a series of
+`cd` and `ls` commands and are asked to compute disk usage by all directories.
+For the first part of the puzzle we need to find all directories whose size is
+at most 100000 and sum them up.
+
+At first I solved this by constructing the complete filesystem in memory.
+Something like this:
+
+```csharp
+class Dir {
+  public Dir Parent { get; }
+  public long Size { get; }
+  public List<Dir> Children { get; }
+}
+
+Dir root;
+```
+
+Then I noticed that the input satisfies additional constraints that aren't
+listed in the problem description:
+
+- The first command in the listing is `cd /`.
+- Each directory is entered only once.
+- `ls` is executed in each directory only once.
+
+All Advent of Code problems are underspecified and you always have to infer
+missing constraints from the input file. Things like integer ranges, for
+example, are always relevant and never specified. The formal rules of the game
+only require that you submit *the answer*. Taking advantage of the particulars
+of the input file is fair game. As a personal challenge I like to write code
+that is a bit more generic than the minimum requirement but if extra unspecified
+constraints allow me to write a more efficient algorithm, I'll do it.
+
+In this case the fact that each directory and file is visited only once enables
+the following algorithm:
+
+```csharp
+long ans = 0;
+List<long> cwd = new() { 0, 0 };
+
+foreach (string line in File.ReadLines("input").Skip(1)) {
+  if (line == "$ cd ..") {
+    Pop();
+  } else if (line.StartsWith("$ cd ")) {
+    cwd.Add(0);
+  } else if (char.IsDigit(line[0])) {
+    cwd[^1] += int.Parse(line[..line.IndexOf(' ')]);
+  }
+}
+
+while (cwd.Count > 1) Pop();
+Console.WriteLine(ans);
+
+void Pop() {
+  if (cwd[^1] <= 100000) ans += cwd[^1];
+  cwd[^2] += cwd[^1];
+  cwd.RemoveAt(cwd.Count - 1);
+}
+```
+
+This is `O(N)` in time and `O(M)` in space where `N` is the size of the input
+file and `M` is the maximum depth of the directory tree. I believe this is
+optimal.
+
+There is just one inefficiency that is bugging me: the first condition in the
+loop implies the second, which means some duplicate work is being done. It
+can be eliminated like this:
+
+```csharp
+if (line.StartsWith("$ cd ")) {
+  if (line[5..] == "..") {
+    ...
+  } else {
+    ...
+  }
+}
+```
+
+I didn't do this because it doesn't look as pretty.
