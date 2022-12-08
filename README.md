@@ -9,6 +9,7 @@ Solutions to [Advent of Code 2022](https://adventofcode.com/2022) puzzles.
 - [Day 5](#day-5)
 - [Day 6](#day-6)
 - [Day 7](#day-7)
+- [Day 8](#day-8)
 
 ## Day 1
 
@@ -412,3 +413,46 @@ if (line.StartsWith("$ cd ")) {
 ```
 
 I didn't do this because it doesn't look as pretty.
+
+## Day 8
+
+We are given a square matrix of size `N` that represent tree heights in a
+grid-shaped forest. For part 2 we need to count the number of trees that are
+visible from the top of each tree when looking North, West, South and East,
+multiply these numbers and find the maximum.
+
+A trivial solution would be `O(N ^ 2)` in space and `O(N ^ 3)` in time, and
+that's how I solved it initially. `N` is 99, so this solution is more than fast
+enough.
+
+I'm pretty sure `O(N ^ 2)` in space and time is optimal here. Here's my
+implementation of it:
+
+```csharp
+string[] grid = File.ReadAllLines("input");
+int n = grid.Length;
+
+int[][] dist = {
+  Dist((i, j) => (i, j)), Dist((i, j) => (i, n - j - 1)),
+  Dist((i, j) => (j, i)), Dist((i, j) => (n - j - 1, i)),
+};
+
+Console.WriteLine(
+    Enumerable.Range(0, n * n).Max(p => dist.Aggregate(1, (a, b) => a * b[p])));
+
+int[] Dist(Func<int, int, (int, int)> pos) {
+  int[] res = new int[n * n];
+  Stack<(int Height, int Pos)> view = new();
+  for (int i = 0; i != n; ++i) {
+    view.Clear();
+    view.Push((int.MaxValue, 0));
+    for (int j = 0; j != n; ++j) {
+      (int y, int x) = pos(i, j);
+      while (view.Peek().Height < grid[y][x]) view.Pop();
+      res[y * n + x] = j - view.Peek().Pos;
+      view.Push((grid[y][x], j));
+    }
+  }
+  return res;
+}
+```
