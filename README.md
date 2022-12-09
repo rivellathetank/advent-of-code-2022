@@ -10,6 +10,7 @@ Solutions to [Advent of Code 2022](https://adventofcode.com/2022) puzzles.
 - [Day 6](#day-6)
 - [Day 7](#day-7)
 - [Day 8](#day-8)
+- [Day 9](#day-9)
 
 ## Day 1
 
@@ -456,3 +457,45 @@ int[] Dist(Func<int, int, (int, int)> pos) {
   return res;
 }
 ```
+
+## Day 9
+
+Today we are simulating a rope on a plane. The movement of the rope's head on
+each step is given in the input file: left, right up or down. The tail follows
+with some degree of stretching.
+
+Here's my solution for the second part where the rope has 10 connected nodes:
+
+```csharp
+HashSet<string> visited = new();
+int[][] rope = Enumerable.Range(0, 10).Select(_ => new int[2]).ToArray();
+
+foreach (string line in File.ReadLines("input")) {
+  for (int i = int.Parse(line[2..]); i != 0; --i) {
+    switch (line[0]) {
+      case 'L': --rope[0][0]; break;
+      case 'R': ++rope[0][0]; break;
+      case 'U': --rope[0][1]; break;
+      case 'D': ++rope[0][1]; break;
+    }
+    for (int j = 0; j != rope.Length - 1; ++j) {
+      if (rope[j].Zip(rope[j + 1]).Any(x => Math.Abs(x.First - x.Second) > 1)) {
+        for (int k = 0; k != rope[0].Length; ++k) {
+          rope[j+1][k] += Math.Sign(rope[j][k] - rope[j+1][k]);
+        }
+      }
+    }
+    visited.Add(string.Join(' ', rope[^1]));
+  }
+}
+
+Console.WriteLine(visited.Count);
+```
+
+I implemented it for N dimensions rather than just for 2 as was required. For
+example, if the rope was allowed to move in 3 dimensions, I would need to
+replace `2` with `3` at the top and add 5 new cases under `switch`.
+
+This is the first solution of mine with superlinear time complexity in input
+size. A linear solution is possible and not particularly difficult. I might get
+back to it later.
