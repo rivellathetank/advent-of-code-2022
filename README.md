@@ -499,3 +499,32 @@ replace `2` with `3` at the top and add 5 new cases under `switch`.
 This is the first solution of mine with superlinear time complexity in input
 size. A linear solution is possible and not particularly difficult. I might get
 back to it later.
+
+*Edit*: I took shot at it and I have to retract what I wrote earlier about a
+"not particularly difficult" linear solution. I can compute the position of
+the rope in linear time but not the number of visited positions. I don't know
+if a linear solution is possible for the latter. Anyway, here's my
+half-solution that computes the movement of the rope in `O(N)` time and `O(1)`
+space:
+
+```csharp
+int[][] rope = Enumerable.Range(0, 10).Select(_ => new int[2]).ToArray();
+
+foreach (string line in File.ReadLines("input")) {
+  int n = int.Parse(line[2..]);
+  switch (line[0]) {
+    case 'L': rope[0][0] -= n; break;
+    case 'R': rope[0][0] += n; break;
+    case 'U': rope[0][1] -= n; break;
+    case 'D': rope[0][1] += n; break;
+  }
+  for (int i = 0; i != rope.Length - 1; ++i) {
+    int[] d = rope[i].Zip(rope[i + 1]).Select(x => x.First - x.Second).ToArray();
+    int m = d.Select(x => Math.Abs(x)).Max() - 1;
+    if (m <= 0) continue;
+    for (int j = 0; j != d.Length; ++j) {
+      rope[i+1][j] += Math.Min(m, Math.Abs(d[j])) * Math.Sign(d[j]);
+    }
+  }
+}
+```
