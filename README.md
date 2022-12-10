@@ -11,6 +11,7 @@ Solutions to [Advent of Code 2022](https://adventofcode.com/2022) puzzles.
 - [Day 7](#day-7)
 - [Day 8](#day-8)
 - [Day 9](#day-9)
+- [Day 10](#day-10)
 
 ## Day 1
 
@@ -526,5 +527,25 @@ foreach (string line in File.ReadLines("input")) {
       rope[i+1][j] += Math.Min(m, Math.Abs(d[j])) * Math.Sign(d[j]);
     }
   }
+}
+```
+
+## Day 10
+
+We are drawing pixels according to the instructions. The problem is trivial. I'm
+starting to question why I'm even doing this.
+
+```csharp
+int c = 0;
+int x = 1;
+
+foreach (string line in File.ReadLines("input")) {
+  (int n, int a) = line == "noop" ? (1, 0) : (2, int.Parse(line[5..]));
+  while (--n >= 0) {
+    Console.Write(Math.Abs(c - x) <= 1 ? '#' : '.');
+    c = (c + 1) % 40;
+    if (c == 0) Console.WriteLine();
+  }
+  x += a;
 }
 ```
