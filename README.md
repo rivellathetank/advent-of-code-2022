@@ -13,6 +13,7 @@ Solutions to [Advent of Code 2022](https://adventofcode.com/2022) puzzles.
 - [Day 9](#day-9)
 - [Day 10](#day-10)
 - [Day 11](#day-11)
+- [Day 12](#day-12)
 
 ## Day 1
 
@@ -618,3 +619,46 @@ efficient.
 
 My solution computes `mod` as Least Common Multiple, although the numbers are
 small enough that plain multiplication would've worked just as well.
+
+## Day 12
+
+Today we are flooding a hiking trail. Both parts of the puzzle require thinking
+up an algorithm. The problem description tells you the *properties* of the
+solution but not the *steps* to obtain it.
+
+I had fun code-golfing today. Here's my part 2:
+
+```csharp
+string[] grid = File.ReadAllLines("input");
+HashSet<(int, int)> seen = new();
+Queue<(int X, int Y, int H, int D)> queue = new();
+
+int sy = 0, sx = grid.TakeWhile(s => (sy = s.IndexOf('E')) < 0).Count();
+queue.Enqueue((sx, sy, 0, 0));
+seen.Add((sx, sy));
+
+Loop:
+(int px, int py, int ph, int pd) = queue.Dequeue();
+foreach ((int x, int y) in new [] {(px - 1, py), (px + 1, py), (px, py - 1), (px, py + 1)}) {
+  if (x < 0 || x >= grid.Length || y < 0 || y >= grid[x].Length) continue;
+  int h = 'z' - (grid[x][y] == 'S' ? 'a' : grid[x][y]);
+  if (h <= ph + 1 && seen.Add((x, y))) queue.Enqueue((x, y, h, pd + 1));
+}
+if (grid[px][py] != 'a') goto Loop;
+Console.WriteLine(pd);
+```
+
+The line with `TakeWhile()` finds the smallest pair `(sx, sy)` such that
+`grid[sx][sy] == 'E'`. Isn't it marvelous? :D
+
+Instead of `goto` I could've done something like this:
+
+```csharp
+for (int done = 0; done == 0;) {
+  ...
+  if (grid[px][py] == 'a') Console.WriteLine(done = pd);
+}
+```
+
+I didn't do it because it adds an extra level of indentation and a condition
+that gets evaluation on every iteration. Besides, I like `goto`.
