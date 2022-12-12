@@ -12,6 +12,7 @@ Solutions to [Advent of Code 2022](https://adventofcode.com/2022) puzzles.
 - [Day 8](#day-8)
 - [Day 9](#day-9)
 - [Day 10](#day-10)
+- [Day 11](#day-11)
 
 ## Day 1
 
@@ -549,3 +550,71 @@ foreach (string line in File.ReadLines("input")) {
   x += a;
 }
 ```
+
+## Day 11
+
+Today monkeys are throwing stolen items to each other in fancy ways. Part 1
+doesn't require any thinking: you simply translate the problem statement into a
+programming language of your choice and it spits out the answer. Part 2,
+however, is the first real *puzzle* of this year's Advent of Code for it doesn't
+provide the instructions for obtaining the answer. You have to come up with an
+idea of your own. In particular, in order to solve part 2 the following
+observations are necessary:
+
+1. `(A + B) mod N = ((A mod N) + B) mod N`
+2. `(A * B) mod N = ((A mod N) * B) mod N`
+
+At the first glance I thought it would also require computing the lengths of
+each item's cycle but unfortunately the number of rounds is too small for this
+to be necessary. Here's my solution:
+
+```csharp
+List<Monkey> monkeys = File
+    .ReadLines("input")
+    .Chunk(7)
+    .Select(lines => new Monkey(
+      lines[1][18..].Split(", ").Select(long.Parse).ToList(),
+      !long.TryParse(lines[2][25..], out long arg)
+          ? x => x * x : lines[2][23] == '*' ? x => x * arg : x => x + arg,
+      long.Parse(lines[3][21..]),
+      int.Parse(lines[4][29..]),
+      int.Parse(lines[5][30..])
+    ))
+    .ToList();
+
+long mod = monkeys.Select(m => m.Test).Aggregate((a, b) => a / Gcd(a, b) * b);
+
+for (int i = 0; i != 10000; ++i) {
+  foreach (Monkey m in monkeys) {
+    foreach (long x in m.Items) {
+      long y = m.Op(x) % mod;
+      monkeys[y % m.Test == 0 ? m.Then : m.Else].Items.Add(y);
+    }
+    m.InspectCount += m.Items.Count;
+    m.Items.Clear();
+  }
+}
+
+monkeys.Sort((a, b) => b.InspectCount.CompareTo(a.InspectCount));
+Console.WriteLine(monkeys[0].InspectCount * monkeys[1].InspectCount);
+
+static long Gcd(long a, long b) {
+  while (b != 0) (a, b) = (b, a % b);
+  return a;
+}
+
+record Monkey(List<long> Items, Func<long, long> Op, long Test, int Then, int Else) {
+  public long InspectCount { get; set; }
+}
+```
+
+(Yes, that parsing code is obscene. Deal with it.)
+
+This is linear in the number of rounds and independent of `mod`. Computing the
+cycle lengths would flip these complexities: run time would be independent of
+the number of rounds and linear in `mod`. In the actual puzzle `mod` was greater
+than the number of rounds, so the simpler solution (listed above) is also more
+efficient.
+
+My solution computes `mod` as Least Common Multiple, although the numbers are
+small enough that plain multiplication would've worked just as well.
