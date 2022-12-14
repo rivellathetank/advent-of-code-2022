@@ -15,6 +15,7 @@ Solutions to [Advent of Code 2022](https://adventofcode.com/2022) puzzles.
 - [Day 11](#day-11)
 - [Day 12](#day-12)
 - [Day 13](#day-13)
+- [Day 14](#day-14)
 
 ## Day 1
 
@@ -713,5 +714,44 @@ static object Parse(string s) {
       return res;
     }
   }
+}
+```
+
+## Day 14
+
+Sifting sand through rocks. This problem is of the do-what-you-are-told variety.
+
+My part 2:
+
+```csharp
+HashSet<(int X, int Y)> grid = new();
+foreach (string[] p in File.ReadLines("input").Select(s => s.Split(" -> "))) {
+  (int px, int py) = ParsePoint(p[0]);
+  foreach ((int x, int y) in p.Select(ParsePoint)) {
+    do {
+      grid.Add((px += Math.Sign(x - px), py += Math.Sign(y - py)));
+    } while (px != x || py != y);
+  }
+}
+
+int floor = grid.Max(p => p.Y) + 2;
+
+for (int ans = 1; ; ++ans) {
+  (int x, int y) = (500, 0);
+  while (++y != floor) {
+    grid.Remove((x, y - 1));
+    if (grid.Add((x, y)) || grid.Add((--x, y)) || grid.Add((x += 2, y))) continue;
+    grid.Add((--x, --y));
+    break;
+  }
+  if (y == 0) {
+    Console.WriteLine(ans);
+    break;
+  }
+}
+
+static (int X, int Y) ParsePoint(string s) {
+  int sep = s.IndexOf(',');
+  return (int.Parse(s[..sep]), int.Parse(s[(sep + 1)..]));
 }
 ```
