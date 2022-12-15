@@ -16,6 +16,7 @@ Solutions to [Advent of Code 2022](https://adventofcode.com/2022) puzzles.
 - [Day 12](#day-12)
 - [Day 13](#day-13)
 - [Day 14](#day-14)
+- [Day 15](#day-15)
 
 ## Day 1
 
@@ -755,3 +756,51 @@ static (int X, int Y) ParsePoint(string s) {
   return (int.Parse(s[..sep]), int.Parse(s[(sep + 1)..]));
 }
 ```
+
+## Day 15
+
+For part 2 we need to find a point on a plain that lies in a given
+4000000 by 4000000 square and do not lie in any of the given 25 Manhattan
+circles. We are ensured that there is only one such point. Coordinates are
+integers.
+
+```csharp
+const int N = 4000000;
+List<(int X, int Y, int R)> sensors = new();
+foreach (string[] w in File.ReadLines("input").Select(s => s.Split(' ').ToArray())) {
+  int sx = int.Parse(w[2][2..^1]);
+  int sy = int.Parse(w[3][2..^1]);
+  int bx = int.Parse(w[8][2..^1]);
+  int by = int.Parse(w[9][2..^0]);
+  sensors.Add((sx, sy, Math.Abs(sx - bx) + Math.Abs(sy - by)));
+}
+
+for (int y = 0; y <= N; ++y) {
+  List<(int L, int R)> segments = new() { (0, N) };
+  foreach (var s in sensors) {
+    int r = s.R - Math.Abs(s.Y - y);
+    if (r < 0) continue;
+    segments = segments.SelectMany(x => SegDiff(x, (s.X - r, s.X + r))).ToList();
+  }
+  if (segments.Count != 0) Console.WriteLine(segments[0].L * 4000000L + y);
+}
+
+static IEnumerable<(int, int)> SegDiff((int L, int R) a, (int L, int R) b) {
+  int end = Math.Min(a.R, b.L - 1);
+  if (end >= a.L) yield return (a.L, end);
+  end = Math.Max(a.L, b.R + 1);
+  if (end <= a.R) yield return (end, a.R);
+}
+```
+
+My solution is `O(N * M)` where `N` is the length of the square and `M` is the
+number of circles. Given that `N` is 4000000, it's quite slow. On my machine
+it takes 9 seconds. With some micro-optimizations (iterate over indices instead
+of using `foreach` and remove all allocations from the loop) I brought the run
+time down to 260ms, so it's not terrible. It can also be trivially parallelized.
+Still, I'm pretty sure there is a better algorithm -- perhaps `O(M *M)` -- that
+I haven't thought of. I might get back to it later.
+
+The solution for part 1 can be easily obtained by adapting this code. It would
+have optimal time complexity: linear in input size. The solution I've committed
+is slower. I'm keeping it because it looks nicer.
