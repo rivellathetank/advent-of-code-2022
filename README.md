@@ -17,6 +17,7 @@ Solutions to [Advent of Code 2022](https://adventofcode.com/2022) puzzles.
 - [Day 13](#day-13)
 - [Day 14](#day-14)
 - [Day 15](#day-15)
+- [Day 16](#day-16)
 
 ## Day 1
 
@@ -804,3 +805,88 @@ I haven't thought of. I might get back to it later.
 The solution for part 1 can be easily obtained by adapting this code. It would
 have optimal time complexity: linear in input size. The solution I've committed
 is slower. I'm keeping it because it looks nicer.
+
+## Day 16
+
+Today we are solving a variation of traveling salesman. The search space is
+large enough that a straightforward search through it is going to be too slow.
+One option is to micro-optimize it. Another and less principled option is to
+add heuristics that make the algorithm inapplicable in general but still capable
+of producing the right answer for the given input file. I've done a combination
+of these.
+
+```csharp
+int n = 1;
+Dictionary<string, (int Id, string[] Edges, int Rate)> input =
+    File.ReadLines("input")
+        .Select(s => s.Replace(",", "").Split(' ').ToArray())
+        .ToDictionary(
+            w => w[1],
+            w => {
+              int rate = int.Parse(w[4][5..^1]);
+              return (w[1] == "AA" ? 0 : rate > 0 ? n++ : -1, w[9..], rate);
+            });
+
+int[] rate = new int[n];
+int[][] dist = new int[n][];
+foreach ((string name, var node) in input) {
+  if (node.Id < 0) continue;
+  rate[node.Id] = node.Rate;
+  dist[node.Id] = new int[n];
+  Queue<(string, int)> q = new();
+  q.Enqueue((name, 0));
+  HashSet<string> visited = new();
+  while (q.Count > 0) {
+    (string edge, int d) = q.Dequeue();
+    if (!visited.Add(edge)) continue;
+    var dst = input[edge];
+    if (dst.Id >= 0) dist[node.Id][dst.Id] = d;
+    foreach (string e in dst.Edges) q.Enqueue((e, d + 1));
+  }
+}
+
+const int T = 26;
+const int G = 20;
+const int P = 5;
+
+Console.WriteLine(Enumerable.Range(0, 1 << P).AsParallel().Max(Search));
+
+int Search(int tid) => Enumerable
+    .Range(0, (1 << (n - 1)))
+    .Select(m => (uint)m)
+    .Where(m => (m & ((1U << P) - 1)) == tid)
+    .Max(m => Solve(m << 1) + Solve(~(m << 1)));
+
+int Solve(uint mask) {
+  List<State> states = new();
+  List<Pending> pending = new() { new(0, new(0, 0, 0, mask | 1)) };
+
+  for (int t = 0; ; ++t) {
+    states.Clear();
+    pending.Sort((x, y) => y.T.CompareTo(x.T));
+    while (pending.Count > 0 && pending[^1].T == t) {
+      states.Add(pending[^1].S);
+      pending.RemoveAt(pending.Count - 1);
+    }
+    states.Sort((x, y) => y.Score.CompareTo(x.Score));
+    if (t == T) return states[0].Score;
+    foreach (State s in states.Take(G)) {
+      pending.Add(new(t + 1, s with { Score = s.Score + s.Rate }));
+      for (int j = 1; j != n; ++j) {
+        uint v = s.Visited | (1U << j);
+        if (v == s.Visited) continue;
+        int dt = dist[s.Pos][j] + 1;
+        pending.Add(new(t + dt, new(s.Score + dt * s.Rate, s.Rate + rate[j], j, v)));
+      }
+    }
+  }
+}
+
+record State(int Score, int Rate, int Pos, uint Visited);
+record struct Pending(int T, State S);
+```
+
+The first half isn't particularly interesting: just parsing and preprocessing.
+The real algorithm starts after `G` is defined. This is a non-principled
+that controls greediness of the search. If you make it smaller, the code runs
+faster but may produce incorrect results.
